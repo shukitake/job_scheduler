@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "job-scheduler"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "job_scheduler"}]
+
+[tool.poetry.dependencies]
+python = "3.8.10"
+pulp = "^2.7.0"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.2.0"
+ipykernel = "^6.22.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
