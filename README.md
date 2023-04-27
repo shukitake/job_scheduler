@@ -11,5 +11,8 @@
     - `brew　install pyenv`
 - `pyenv isntall 3.8.10` でpython3.8.10をインストール  
 - `poetry install`で依存関係のインストールが完了
-## formatterと　linterのセットアップ
+## formatterとlinterのセットアップ
 - `python setup.py lint`
+
+## 
+- `poetry run pysen run format && poetry run pysen run lint`
