@@ -1,5 +1,6 @@
 """最適化のモデラーをインポート"""
 import pulp
+from utils.log import LoggerUtil
 
 
 class ProdPlan:
@@ -19,6 +20,9 @@ class ProdPlan:
     """
 
     def __init__(self, jobs, time_p, weights, time_r) -> None:
+        # ロガーの作成
+        self.logger = LoggerUtil().get_logger(__name__)
+
         # 辞書型にして入力
         self.jobs = jobs
         self.dict_p = time_p
@@ -105,18 +109,24 @@ class ProdPlan:
         """
         # 最適化計算とステータスの取得
         self.status = self.model.solve()
-        print(f"Status{pulp.LpStatus[self.status]}:")
+        self.logger.info(f"Status{pulp.LpStatus[self.status]}:")
 
         # 目的関数値の取得
         self.objective = self.model.objective.value()
 
         # modelの制約の数
-        print("制約の数 : ", self.model.numConstraints())
+        self.logger.info(f"制約の数 : {self.model.numConstraints()}")
         # modelの変数の数
-        print("変数の数 : ", self.model.numVariables())
+        self.logger.info(f"変数の数 : {self.model.numVariables()}")
         # 最適解
-        print("最適解 : ", pulp.value(self.model.objective))
-        # 最適解の時の変数の値
-        for v in self.model.variables():
-            print(v.name, "=", v.varValue)
+        self.logger.info(f"最適値 : {pulp.value(self.model.objective)}")
+
+    def show_result(self):
+        """
+        結果を表示する関数
+        """
+        for j in self.jobs:
+            self.logger.info(f"ジョブ,{j},の開始時間は,{pulp.value(self.var_s[j])}")
+            self.logger.info(f"ジョブ{j}の完了時間は,{pulp.value(self.var_c[j])}")
+            self.logger.info("")
         return

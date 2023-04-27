@@ -14,6 +14,9 @@ mypy = "^1.2.0"
 isort = "^5.12.0"
 flake8 = "^6.0.0"
 pysen = "^0.10.4"
+joblib = "^1.2.0"
+tqdm = "^4.65.0"
+loguru = "^0.7.0"
 
 
 [tool.poetry.group.dev.dependencies]

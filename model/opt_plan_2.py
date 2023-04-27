@@ -9,6 +9,7 @@ def main(jobs, time_p, weights, time_r):
     prod_plan = ProdPlan(jobs, time_p, weights, time_r)
     prod_plan.modeling()
     prod_plan.solve()
+    prod_plan.show_result()
 
 
 if __name__ == "__main__":
