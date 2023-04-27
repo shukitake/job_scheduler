@@ -9,6 +9,11 @@ packages = [{include = "job_scheduler"}]
 [tool.poetry.dependencies]
 python = "3.8.10"
 pulp = "^2.7.0"
+black = "^23.3.0"
+mypy = "^1.2.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+pysen = "^0.10.4"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -18,3 +23,16 @@ ipykernel = "^6.22.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pysen]
+version = "0.10.4"
+
+[tool.pysen.lint]
+enable_black = true
+enable_flake8 = true
+enable_isort = true
+enable_mypy = true
+mypy_preset = "strict"
+line_length = 88
+[[tool.pysen.lint.mypy_targets]]
+  paths = ["."]
