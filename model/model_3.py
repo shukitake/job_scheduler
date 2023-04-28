@@ -17,6 +17,8 @@ class ProdPlan:
         ジョブの重要度の集合
     R : dict
         ジョブのリリース時間の集合
+    T : int
+        時間の集合。最大値はリリース時間の最大値 + 処理時間の合計
     """
 
     def __init__(self, jobs, time_p, weights, time_r) -> None:
@@ -28,12 +30,13 @@ class ProdPlan:
         self.dict_p = time_p
         self.dict_w = weights
         self.dict_r = time_r
+        self.times = list(
+            range(1, max(self.dict_r.values()) + sum(self.dict_p.values()))
+        )
 
         # Model
         self.model = None
-        self.var_x = dict
-        self.var_c = dict
-        self.var_s = dict
+        self.var_z = dict
 
         # Result
         self.status = -1
@@ -57,26 +60,64 @@ class ProdPlan:
         """
         モデルを作成する関数
 
-        切除平面法を用いて最適化問題を解く
-        最初に追加する制約は以下の通り
-        1. 全てのジョブは終了時間がリリース時間と処理時間の合計よりも大きい
+        制約1 : sum_z_j = 1
+        任意のジョブは一度だけ処理される
+        制約2 : sum_j(p_j * z_j) <= T
+        ジョブは同時に一つのみ処理される
         """
         # 　モデルのインスタンスの作成
         self.model = pulp.LpProblem(name="model", sense=pulp.LpMinimize)
 
         # 変数の作成
-        self.var_x = pulp.LpVariable.dicts(
-            "x", [(j, k) for j in self.jobs for k in self.jobs], cat="Binary"
+        self.var_z = pulp.LpVariable.dicts(
+            "z",
+            [(j, t) for j in self.jobs for t in self.times],
+            cat="Binary",
         )
-        self.var_c = pulp.LpVariable.dicts("C", self.jobs, lowBound=0, cat="Integer")
-        self.var_s = pulp.LpVariable.dicts("S", self.jobs, lowBound=0, cat="Integer")
 
         # 制約の作成
+        # 制約1
         for j in self.jobs:
-            self.model += self.var_c[j] >= self.dict_r[j] + self.dict_p[j]
+            self.model += (
+                pulp.lpSum(
+                    [
+                        self.var_z[j, t]
+                        for t in list(
+                            range(self.dict_r[j], max(self.times) - self.dict_p[j] + 1)
+                        )
+                    ]
+                )
+                == 1
+            )
+
+        # 制約2
+        for t in self.times:
+            self.model += (
+                pulp.lpSum(
+                    [
+                        [
+                            self.var_z[j, t_dash]
+                            for t_dash in list(
+                                range(max(1, t - self.dict_p[j] + 1), t + 1)
+                            )
+                        ]
+                        for j in self.jobs
+                    ]
+                )
+                <= 1
+            )
 
         # 目的関数の作成
-        self.model += pulp.lpSum([self.dict_w[j] * self.var_c[j] for j in self.jobs])
+        self.model += pulp.lpSum(
+            [
+                self.dict_w[j]
+                * (
+                    pulp.lpSum([t * self.var_z[j, t] for t in self.times])
+                    * self.dict_p[j]
+                )
+                for j in self.jobs
+            ]
+        )
         return
 
     def solve(self):
@@ -101,8 +142,9 @@ class ProdPlan:
         """
         結果を表示する関数
         """
+        # 結果の表示
         for j in self.jobs:
-            self.logger.info(f"ジョブ,{j},の開始時間は,{pulp.value(self.var_s[j])}")
-            self.logger.info(f"ジョブ{j}の完了時間は,{pulp.value(self.var_c[j])}")
-            self.logger.info("")
+            for t in self.times:
+                if self.var_z[j, t].value() == 1:
+                    self.logger.info(f"ジョブ{j}は時刻{t}に処理される")
         return

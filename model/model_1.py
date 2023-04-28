@@ -17,6 +17,8 @@ class ProdPlan:
         ジョブの重要度の集合
     R : dict
         ジョブのリリース時間の集合
+    M : int
+        ビックMの値（最も遅いリリースから全ジョブの処理時間の和を足す）
     """
 
     def __init__(self, jobs, time_p, weights, time_r) -> None:
@@ -28,6 +30,7 @@ class ProdPlan:
         self.dict_p = time_p
         self.dict_w = weights
         self.dict_r = time_r
+        self.big_m = max(self.dict_r.values()) + sum(self.dict_p.values())
 
         # Model
         self.model = None
@@ -57,9 +60,14 @@ class ProdPlan:
         """
         モデルを作成する関数
 
-        切除平面法を用いて最適化問題を解く
-        最初に追加する制約は以下の通り
-        1. 全てのジョブは終了時間がリリース時間と処理時間の合計よりも大きい
+        制約1 : C[j] == S[j] + P[j]
+            ジョブjの完了時間は開始時間と処理時間の和
+        制約2 : S[j] >= R[j]
+            ジョブjの開始時間はリリース時間以上
+        制約3 : C[j] <= S[k] + M * (1 - X[j,k])
+            ジョブjがジョブkよりも早く終わる時、ジョブjの完了時間はジョブkの開始時間よりも早い
+        制約4 : X[j,k] + X[k,j] == 1
+            ジョブjとジョブkの順序は1つのみ
         """
         # 　モデルのインスタンスの作成
         self.model = pulp.LpProblem(name="model", sense=pulp.LpMinimize)
@@ -71,10 +79,20 @@ class ProdPlan:
         self.var_c = pulp.LpVariable.dicts("C", self.jobs, lowBound=0, cat="Integer")
         self.var_s = pulp.LpVariable.dicts("S", self.jobs, lowBound=0, cat="Integer")
 
-        # 制約の作成
+        # 制約条件を定義する
         for j in self.jobs:
-            self.model += self.var_c[j] >= self.dict_r[j] + self.dict_p[j]
-
+            # 制約1
+            self.model += self.var_c[j] == self.var_s[j] + self.dict_p[j]
+            # 制約2
+            self.model += self.var_s[j] >= self.dict_r[j]
+            for k in self.jobs:
+                # 制約3
+                self.model += (
+                    self.var_s[k] + self.big_m * (1 - self.var_x[j, k]) >= self.var_c[j]
+                )
+                # 制約4
+                if j != k:
+                    self.model += self.var_x[j, k] + self.var_x[k, j] == 1
         # 目的関数の作成
         self.model += pulp.lpSum([self.dict_w[j] * self.var_c[j] for j in self.jobs])
         return
