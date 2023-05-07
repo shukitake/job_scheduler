@@ -105,7 +105,7 @@ class ProdPlan:
         ジョブjの完了時間は開始時間と処理時間の和
         制約2 : s[j] >= r[j]
         ジョブjの開始時間はリリース時間以上
-        制約3 : s[j] >= r[j] * X[k,j] sum_j p[i] *(x[i,j] - x[i,k])
+        制約3 : s[j] >= r[k] * X[k,j] sum_j p[i] *(x[i,j] - x[i,k])
 
         制約4 : x[j,k] + x[k,j] = 1
         ジョブjとジョブkは同時に処理されない
@@ -127,11 +127,11 @@ class ProdPlan:
             self.model += self.var_c[j] == self.var_s[j] + self.dict_p[j]
             self.model += self.var_s[j] >= self.dict_r[j]
             for k in self.jobs:
-                self.model += self.var_s[j] >= self.dict_r[j] * self.var_x[
+                self.model += self.var_s[j] >= self.dict_r[k] * self.var_x[
                     (k, j)
                 ] + pulp.lpSum(
                     [
-                        self.dict_p[j] * (self.var_x[(i, j)] - self.var_x[(i, k)])
+                        self.dict_p[i] * (self.var_x[(i, j)] - self.var_x[(i, k)])
                         for i in self.jobs
                     ]
                 )
@@ -140,7 +140,7 @@ class ProdPlan:
                 for i in self.jobs:
                     self.model += (
                         self.var_x[(j, k)] + self.var_x[(k, i)] + self.var_x[(i, j)]
-                        <= 1
+                        <= 2
                     )
 
         # 目的関数の作成
@@ -164,7 +164,7 @@ class ProdPlan:
         # 最適解
         self.logger.info(f"最適値 : {pulp.value(self.model.objective)}")
 
-    def visualize(self):
+    def visualize(self, output_path):
         """
         結果をガントチャートで表示する関数
         """
@@ -200,8 +200,10 @@ class ProdPlan:
         save_name = "gantt_chart_sample"
         pio.orca.config.executable = "/Applications/orca.app/Contents/MacOS/orca"
         # 画像の保存
-        # 保存場所はresult/model_1
-        pio.write_image(fig, f"./model/result/model_2/{save_name}.png")
+        # 保存場所はoutput_path。無い場合は作成する
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        fig.write_image(f"{output_path}/{save_name}.png")
 
     def get_time(self):
         """

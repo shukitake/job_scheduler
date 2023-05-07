@@ -154,7 +154,7 @@ class ProdPlan:
         # 最適解
         self.logger.info(f"最適値 : {pulp.value(self.model.objective)}")
 
-    def visualize(self):
+    def visualize(self, output_path):
         """
         結果をガントチャートで表示する関数
         """
@@ -190,8 +190,10 @@ class ProdPlan:
         save_name = "gantt_chart_sample"
         pio.orca.config.executable = "/Applications/orca.app/Contents/MacOS/orca"
         # 画像の保存
-        # 保存場所はresult/model_1
-        pio.write_image(fig, f"./model/result/model_1/{save_name}.png")
+        # 保存場所はoutput_path。無い場合は作成する
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        fig.write_image(f"{output_path}/{save_name}.png")
 
     def get_time(self):
         """
